@@ -24,6 +24,8 @@ public static class Program
         var gameRenderer = new GameRenderer(sdl, gameWindow, gameLogic);
         var inputLogic = new InputLogic(sdl, gameWindow, gameRenderer, gameLogic);
 
+        gameLogic.LoadGameState();
+
         bool quit = false;
         while (!quit)
         {

@@ -20,6 +20,8 @@ namespace TheAdventure{
             ReadOnlySpan<byte> _keyboardState = new(_sdl.GetKeyboardState(null), (int)KeyCode.Count);
             Span<byte> mouseButtonStates = stackalloc byte[(int)MouseButton.Count];
             Event ev = new Event();
+            var mouseX = 0;
+            var mouseY = 0;
             while (_sdl.PollEvent(ref ev) != 0)
             {
                 if (ev.Type == (uint)EventType.Quit)
@@ -105,6 +107,8 @@ namespace TheAdventure{
                     }
                     case (uint)EventType.Mousebuttondown:
                     {
+                        mouseX = ev.Motion.X;
+                        mouseY = ev.Motion.Y;
                         mouseButtonStates[ev.Button.Button] = 1;
                         break;
                     }
@@ -136,6 +140,10 @@ namespace TheAdventure{
                         break;
                     }
                 }
+            }
+
+            if (mouseButtonStates[(byte)MouseButton.Primary] == 1){
+                _gameLogic.AddBomb(mouseX, mouseY);
             }
             return false;
         }
