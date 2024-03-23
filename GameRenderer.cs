@@ -5,6 +5,16 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace TheAdventure{
     public unsafe class GameRenderer
     {
+        public struct TextureInfo{
+            public int Width {get;set;}
+            public int Height {get;set;}
+            public int PixelDataSize{get { return Width * Height * 4; }}
+        }
+
+        Dictionary<int, IntPtr> _texturePointers;
+        Dictionary<int, TextureInfo> _textureInformation;
+        int _index = 0;
+
         private Sdl _sdl;
         private Renderer* _renderer;
         private GameWindow _window;
@@ -69,15 +79,9 @@ namespace TheAdventure{
                 timeSinceLastFrame = (int)DateTimeOffset.UtcNow.Subtract(_lastFrameRenderedAt).TotalMilliseconds;
             }
 
-
-
             _gameLogic.RenderAllObjects(timeSinceLastFrame, this);
 
             _lastFrameRenderedAt = DateTimeOffset.UtcNow;
-
-            /*foreach(var gameObject in _gameLogic.GetAllRenderableObjects()){
-                RenderGameObject(gameObject);
-            }*/
 
             _sdl.RenderPresent(_renderer);
         }

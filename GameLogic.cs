@@ -1,4 +1,7 @@
 
+using System.Runtime.CompilerServices;
+using Silk.NET.Maths;
+
 namespace TheAdventure
 {
     public class GameLogic
@@ -11,9 +14,6 @@ namespace TheAdventure
         }
 
         public void LoadGameState(){
-
-            //var testObject = new RenderableGameObject("image.png", 1);
-            //_gameObjects.Add(testObject.Id, testObject);
         }
 
         public IEnumerable<RenderableGameObject> GetAllRenderableObjects(){
@@ -26,7 +26,39 @@ namespace TheAdventure
 
         public void ProcessFrame()
         {
-            
+            var renderableObject = (RenderableGameObject)_gameObjects.First();
+
+            var i = frameCount % 10;
+            var j = frameCount / 10;
+
+            var cellWidth = renderableObject.TextureInformation.Width / 10;
+            var cellHeight = renderableObject.TextureInformation.Height / 10;
+
+            var x = i * cellWidth;
+            var y = j * cellHeight;
+
+            Rectangle<int> srcDest = new Rectangle<int>(x, y, cellWidth, cellHeight);
+
+            renderableObject.TextureSource = srcDest;
+            //renderableObject.TextureDestination = srcDest;
+            renderableObject.TextureDestination = new Rectangle<int>(0, 0, cellWidth, cellHeight);
+
+            ++frameCount;
+            if(frameCount == 100){
+                frameCount = 0;
+            }
+        }
+
+        private GameRenderer _gameRenderer;
+        private List<GameObject> _gameObjects;
+
+        public IEnumerable<RenderableGameObject> GetRenderables()
+        {
+            foreach(var gameObject in _gameObjects){
+                if(gameObject is RenderableGameObject){
+                    yield return (RenderableGameObject)gameObject;
+                }
+            }
         }
 
         public void RenderAllObjects(int timeSinceLastFrame, GameRenderer renderer){

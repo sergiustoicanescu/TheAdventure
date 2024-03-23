@@ -42,6 +42,7 @@ public static class Program
             gameRenderer.Render();
 
             ++framesRenderedCounter;
+            System.Threading.Thread.Sleep(TimeSpan.FromSeconds(0.041666666666667));
         }
 
         gameWindow.Destroy();

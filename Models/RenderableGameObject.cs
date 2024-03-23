@@ -1,3 +1,4 @@
+using Silk.NET.Maths;
 using TheAdventure;
 
 public class RenderableGameObject : GameObject
