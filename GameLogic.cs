@@ -6,19 +6,23 @@ namespace TheAdventure
 {
     public class GameLogic
     {
+        private Dictionary<int, GameObject> _gameObjects;
+
         public GameLogic(){
-            _gameObjects = new List<GameObject>();
+            _gameObjects = new Dictionary<int, GameObject>();
+
         }
 
-        public void InitializeGame(GameRenderer gameRenderer){
-            _gameRenderer = gameRenderer;
-
-            var textureId = gameRenderer.LoadTexture("image.png", out var textureInfo);            
-            var sampleRenderableObject = new RenderableGameObject(textureId, new Rectangle<int>(0, 0, textureInfo.Width, textureInfo.Height), new Rectangle<int>(0, 0, textureInfo.Width, textureInfo.Height), textureInfo);
-            _gameObjects.Add(sampleRenderableObject);
+        public void LoadGameState(){
         }
 
-        int frameCount = 0;
+        public IEnumerable<RenderableGameObject> GetAllRenderableObjects(){
+            foreach(var gameObject in _gameObjects.Values){
+                if(gameObject is RenderableGameObject){
+                    yield return (RenderableGameObject)gameObject;
+                }
+            }
+        }
 
         public void ProcessFrame()
         {
@@ -56,5 +60,31 @@ namespace TheAdventure
                 }
             }
         }
+
+        public void RenderAllObjects(int timeSinceLastFrame, GameRenderer renderer){
+            List<int> itemsToRemove = new List<int>();
+            foreach(var gameObject in GetAllRenderableObjects()){
+                if(gameObject.Update(timeSinceLastFrame)){
+                    gameObject.Render(renderer);
+                }
+                else{
+                    itemsToRemove.Add(gameObject.Id);
+                }
+
+                
+            }
+            foreach(var item in itemsToRemove){
+                _gameObjects.Remove(item);
+            }
+        }
+
+        private int _bombIds = 100;
+
+        public void AddBomb(int x, int y){
+            AnimatedGameObject bomb = new AnimatedGameObject("BombExploding.png", 2, _bombIds, 13, 13, 1, x, y);
+            _gameObjects.Add(bomb.Id, bomb);
+            ++_bombIds;
+        }
+
     }
 }

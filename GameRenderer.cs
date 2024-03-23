@@ -20,54 +20,70 @@ namespace TheAdventure{
         private GameWindow _window;
         private GameLogic _gameLogic;
 
+        private Dictionary<int, IntPtr> _textures;
+        private Dictionary<int, TextureData> _textureData;
+        private int _textureId;
+
+        private static GameRenderer _singleton;
+        private DateTimeOffset _lastFrameRenderedAt = DateTimeOffset.MinValue;
+
         public GameRenderer(Sdl sdl, GameWindow gameWindow, GameLogic gameLogic){
             _window = gameWindow;
             _gameLogic = gameLogic;
             _sdl = sdl;
             _renderer = (Renderer*)gameWindow.CreateRenderer();
-            _textureInformation = new Dictionary<int, TextureInfo>();
-            _texturePointers = new Dictionary<int, nint>();
+            _textures = new Dictionary<int, IntPtr>();
+            _textureData = new Dictionary<int, TextureData>();
+
+            // TODO: Check if _singleton is not null, if it is, clear resources.
+
+            _singleton = this;
+        }
+
+        public static int LoadTexture(string fileName, out TextureData textureData)
+        {
+            using (var fStream = new FileStream(fileName, FileMode.Open)){
+                var image = Image.Load<Rgba32>(fStream);
+                textureData = new TextureData(){
+                    Width = image.Width,
+                    Height = image.Height
+                };
+                var imageRAWData = new byte[textureData.Width * textureData.Height * 4];
+                image.CopyPixelDataTo(imageRAWData.AsSpan());
+                fixed(byte* data = imageRAWData)
+                {
+                    var imageSurface = _singleton._sdl.CreateRGBSurfaceWithFormatFrom(data, textureData.Width, textureData.Height, 8, textureData.Width * 4, (uint)PixelFormatEnum.Rgba32);
+                    var imageTexture = _singleton._sdl.CreateTextureFromSurface(_singleton._renderer, imageSurface);
+                    _singleton._sdl.FreeSurface(imageSurface);
+                    _singleton._textureData[_singleton._textureId] = textureData;
+                    _singleton._textures[_singleton._textureId] = (IntPtr)imageTexture;
+            }
+            }
+            return _singleton._textureId++;
+        }
+
+        public void RenderGameObject(RenderableGameObject gameObject){
+            if(_textures.TryGetValue(gameObject.TextureId, out var imageTexture)){
+                    _sdl.RenderCopyEx(_renderer, (Texture*)imageTexture, gameObject.TextureSource, 
+                                      gameObject.TextureDestination,
+                                      gameObject.TextureRotation,
+                                      gameObject.TextureRotationCenter, RendererFlip.None);
+            }
         }
 
         public void Render(){
             _sdl.RenderClear(_renderer);
-            foreach(var renderable in _gameLogic.GetRenderables()){
-                if(renderable.TextureId > -1 &&
-                   _texturePointers.TryGetValue(renderable.TextureId, out var texturePointer)){
-                    _sdl.RenderCopyEx(_renderer, (Texture*)texturePointer, renderable.TextureSource, renderable.TextureDestination, 0, new Silk.NET.SDL.Point(0, 0), RendererFlip.None);
-                }
-            }
-            _sdl.RenderPresent(_renderer);
-        }
 
-        public int LoadTexture(string fileName, out TextureInfo textureInfo)
-        {
-            using (var fStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)){
-                var image = Image.Load<Rgba32>(fStream);
-                textureInfo = new TextureInfo() {
-                    Width = image.Width,
-                    Height = image.Height,
-                };
-                var imageRAWData = new byte[textureInfo.PixelDataSize];
-                image.CopyPixelDataTo(imageRAWData.AsSpan());
-                Surface* imageSurface = null;
-                Texture* imageTexture = null;
-                fixed(byte* data = imageRAWData)
-                {
-                    imageSurface = _sdl.CreateRGBSurfaceWithFormatFrom(data, textureInfo.Width, textureInfo.Height, 8, textureInfo.Width * 4, (uint)PixelFormatEnum.Rgba32);
-                    imageTexture = _sdl.CreateTextureFromSurface(_renderer, imageSurface); 
-                    _sdl.FreeSurface(imageSurface);
-                }
-                if(imageTexture != null)
-                {
-                    _texturePointers[_index] = (IntPtr)imageTexture;
-                    _textureInformation[_index] = textureInfo;
-                    return _index++;
-                }
-                else{
-                    return -1;
-                }
+            var timeSinceLastFrame = 0;
+            if (_lastFrameRenderedAt > DateTimeOffset.MinValue){
+                timeSinceLastFrame = (int)DateTimeOffset.UtcNow.Subtract(_lastFrameRenderedAt).TotalMilliseconds;
             }
+
+            _gameLogic.RenderAllObjects(timeSinceLastFrame, this);
+
+            _lastFrameRenderedAt = DateTimeOffset.UtcNow;
+
+            _sdl.RenderPresent(_renderer);
         }
     }
 }
