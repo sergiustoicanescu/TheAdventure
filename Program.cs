@@ -12,7 +12,7 @@ public static class Program
         ulong framesRenderedCounter = 0;
         var timer = new Stopwatch();
 
-        var sdlInitResult = sdl.Init(Sdl.InitVideo | Sdl.InitAudio | Sdl.InitEvents | Sdl.InitTimer | Sdl.InitGamecontroller |
+        var sdlInitResult = sdl.Init(Sdl.InitVideo | Sdl.InitEvents | Sdl.InitTimer | Sdl.InitGamecontroller |
                                      Sdl.InitJoystick);
         if (sdlInitResult < 0)
         {
