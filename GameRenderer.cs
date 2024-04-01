@@ -22,6 +22,7 @@ namespace TheAdventure
         private Renderer* _renderer;
         private GameWindow _window;
         private GameLogic _gameLogic;
+        private GameCamera _camera;
 
         private Dictionary<int, IntPtr> _textures;
         private Dictionary<int, TextureData> _textureData;
@@ -38,6 +39,9 @@ namespace TheAdventure
             _renderer = (Renderer*)gameWindow.CreateRenderer();
             _textures = new Dictionary<int, IntPtr>();
             _textureData = new Dictionary<int, TextureData>();
+            _camera = new GameCamera();
+            _camera.Width = 800;
+            _camera.Height = 600;
 
             // TODO: Check if _singleton is not null, if it is, clear resources.
 
@@ -77,10 +81,12 @@ namespace TheAdventure
 
         public void RenderGameObject(RenderableGameObject gameObject)
         {
+            // Translate to screen coordinates using camera data.
+
             if (_textures.TryGetValue(gameObject.TextureId, out var imageTexture))
             {
                 _sdl.RenderCopyEx(_renderer, (Texture*)imageTexture, gameObject.TextureSource,
-                    gameObject.TextureDestination,
+                    _camera.TranslateToScreenCoordinates(gameObject.TextureDestination),
                     gameObject.TextureRotation,
                     gameObject.TextureRotationCenter, RendererFlip.None);
             }
@@ -88,10 +94,12 @@ namespace TheAdventure
 
         public void RenderTexture(int textureId, Rectangle<int> src, Rectangle<int> dst)
         {
+            // Translate to screen coordinates using camera data.
+
             if (_textures.TryGetValue(textureId, out var imageTexture))
             {
                 _sdl.RenderCopyEx(_renderer, (Texture*)imageTexture, src,
-                    dst,
+                    _camera.TranslateToScreenCoordinates(dst),
                     0,
                     new Silk.NET.SDL.Point(0,0), RendererFlip.None);
             }
@@ -99,6 +107,13 @@ namespace TheAdventure
 
         public void Render()
         {
+            var playerPos = _gameLogic.GetPlayerCoordinates();
+
+            // TODO: implement the soft margin;
+
+            _camera.X = playerPos.x;
+            _camera.Y = playerPos.y;
+
             _sdl.RenderClear(_renderer);
 
             _gameLogic.RenderTerrain(this);

@@ -10,14 +10,17 @@ namespace TheAdventure
         private Dictionary<int, GameObject> _gameObjects = new();
         private Dictionary<string, TileSet> _loadedTileSets = new();
 
-        private Level _currentLevel;
+        private Level? _currentLevel;
+        private PlayerObject _player;
 
         public GameLogic()
         {
+            
         }
 
         public void LoadGameState()
         {
+            _player = new PlayerObject(1000);
             var jsonSerializerOptions =  new JsonSerializerOptions(){ PropertyNameCaseInsensitive = true };
             var levelContent = File.ReadAllText(Path.Combine("Assets", "terrain.tmj"));
 
@@ -58,6 +61,7 @@ namespace TheAdventure
 
         public Tile? GetTile(int id)
         {
+            if (_currentLevel == null) return null;
             foreach(var tileSet in _currentLevel.TileSets){
                 foreach(var tile in tileSet.Set.Tiles)
                 {
@@ -70,8 +74,20 @@ namespace TheAdventure
             return null;
         }
 
+        public void UpdatePlayerPosition(double up, double down, double left, double right, int timeSinceLastUpdateInMS)
+        {
+            _player.UpdatePlayerPosition(up, down, left, right, timeSinceLastUpdateInMS);
+            
+        }
+
+        public (int x, int y) GetPlayerCoordinates()
+        {
+            return (_player.X, _player.Y);
+        }
+
         public void RenderTerrain(GameRenderer renderer)
         {
+            if (_currentLevel == null) return;
             for(var layer = 0; layer < _currentLevel.Layers.Length; ++layer){
                 var cLayer = _currentLevel.Layers[layer];
 
@@ -121,6 +137,8 @@ namespace TheAdventure
             {
                 _gameObjects.Remove(item);
             }
+
+            _player.Render(renderer);
         }
 
         private int _bombIds = 100;
