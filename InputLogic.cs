@@ -7,16 +7,19 @@ namespace TheAdventure{
         private GameLogic _gameLogic;
         private GameWindow _gameWindow;
         private GameRenderer _renderer;
+        private DateTimeOffset _lastUpdate;
 
         public InputLogic(Sdl sdl, GameWindow window, GameRenderer renderer, GameLogic logic){
             _sdl = sdl;
             _gameLogic = logic;
             _gameWindow = window;
             _renderer = renderer;
+            _lastUpdate = DateTimeOffset.UtcNow;
         }
 
         public bool ProcessInput()
         {
+            var currentTime = DateTimeOffset.UtcNow;
             ReadOnlySpan<byte> _keyboardState = new(_sdl.GetKeyboardState(null), (int)KeyCode.Count);
             Span<byte> mouseButtonStates = stackalloc byte[(int)MouseButton.Count];
             Event ev = new Event();
@@ -132,6 +135,7 @@ namespace TheAdventure{
 
                     case (uint)EventType.Keyup:
                     {
+                        
                         break;
                     }
 
@@ -141,6 +145,23 @@ namespace TheAdventure{
                     }
                 }
             }
+
+            var timeSinceLastUpdateInMS = (int)currentTime.Subtract(_lastUpdate).TotalMilliseconds;
+
+            if (_keyboardState[(int)Scancode.ScancodeUp] == 1){
+                _gameLogic.UpdatePlayerPosition(1.0, 0, 0, 0, timeSinceLastUpdateInMS);
+            }
+            else if (_keyboardState[(int)Scancode.ScancodeDown] == 1){
+                _gameLogic.UpdatePlayerPosition(0, 1.0, 0, 0, timeSinceLastUpdateInMS);
+            }
+            else if (_keyboardState[(int)Scancode.ScancodeLeft] == 1){
+                _gameLogic.UpdatePlayerPosition(0, 0, 1.0, 0, timeSinceLastUpdateInMS);
+            }
+            else if (_keyboardState[(int)Scancode.ScancodeRight] == 1){
+                _gameLogic.UpdatePlayerPosition(0, 0, 0, 1.0, timeSinceLastUpdateInMS);
+            }
+
+            _lastUpdate = currentTime;
 
             if (mouseButtonStates[(byte)MouseButton.Primary] == 1){
                 _gameLogic.AddBomb(mouseX, mouseY);
