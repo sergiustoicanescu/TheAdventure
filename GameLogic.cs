@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Silk.NET.Maths;
@@ -20,7 +21,7 @@ namespace TheAdventure
 
         public void LoadGameState()
         {
-            _player = new PlayerObject(1000);
+            
             var jsonSerializerOptions =  new JsonSerializerOptions(){ PropertyNameCaseInsensitive = true };
             var levelContent = File.ReadAllText(Path.Combine("Assets", "terrain.tmj"));
 
@@ -42,6 +43,12 @@ namespace TheAdventure
                 refTileSet.Set = tileSet;
             }
             _currentLevel = level;
+            _player = new PlayerObject(1000, 24, 24, _currentLevel.TileWidth * _currentLevel.Width, _currentLevel.TileHeight * _currentLevel.Height);
+        }
+
+        public Rectangle<int> GetWorldBoundingBox(){
+            if (_currentLevel == null) return new Rectangle<int>();
+            return new Rectangle<int>(0, 0, _currentLevel.Width * _currentLevel.TileWidth, _currentLevel.Height * _currentLevel.TileHeight);
         }
 
         public IEnumerable<RenderableGameObject> GetAllRenderableObjects()
@@ -76,6 +83,7 @@ namespace TheAdventure
 
         public void UpdatePlayerPosition(double up, double down, double left, double right, int timeSinceLastUpdateInMS)
         {
+
             _player.UpdatePlayerPosition(up, down, left, right, timeSinceLastUpdateInMS);
             
         }
@@ -143,9 +151,18 @@ namespace TheAdventure
 
         private int _bombIds = 100;
 
-        public void AddBomb(int x, int y)
+        /// <summary>
+        /// Add a bomb at the given coordinates.
+        /// </summary>
+        /// <remarks>
+        /// <paramref name="x"/> and <paramref name="y"/> are in screen coordinates.
+        /// </remarks>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        public void AddBomb(int x, int y, GameRenderer renderer)
         {
-            AnimatedGameObject bomb = new AnimatedGameObject("BombExploding.png", 2, _bombIds, 13, 13, 1, x, y);
+            var translated = renderer.TranslateFromScreenToWorldCoordinates(x, y);
+            AnimatedGameObject bomb = new AnimatedGameObject("BombExploding.png", 2, _bombIds, 13, 13, 1, translated.X, translated.Y);
             _gameObjects.Add(bomb.Id, bomb);
             ++_bombIds;
         }

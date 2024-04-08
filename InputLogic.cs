@@ -164,7 +164,7 @@ namespace TheAdventure{
             _lastUpdate = currentTime;
 
             if (mouseButtonStates[(byte)MouseButton.Primary] == 1){
-                _gameLogic.AddBomb(mouseX, mouseY);
+                _gameLogic.AddBomb(mouseX, mouseY, _renderer);
             }
             return false;
         }

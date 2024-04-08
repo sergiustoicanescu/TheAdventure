@@ -25,6 +25,7 @@ public static class Program
         var inputLogic = new InputLogic(sdl, gameWindow, gameRenderer, gameLogic);
 
         gameLogic.LoadGameState();
+        gameRenderer.UpdateCamera();
 
         bool quit = false;
         while (!quit)
