@@ -3,64 +3,46 @@ using TheAdventure;
 
 namespace TheAdventure.Models;
 
-public class PlayerObject : GameObject
+public class PlayerObject : RenderableGameObject
 {
-    /// <summary>
-    /// Player X position in world coordinates.
-    /// </summary>
-    public int X { get; set; }
+    private int _pixelsPerSecond = 192;
 
-    /// <summary>
-    /// Player Y position in world coordinates.
-    /// </summary>
-    public int Y { get; set; }
-
-    public int WorldWidth {get;set;}
-
-    public int WorldHeight {get;set;}
-
-    // Offset player sprite to have world position at x=24px y=42px
-
-    private Rectangle<int> _source = new Rectangle<int>(0, 0, 48, 48);
-    private Rectangle<int> _target = new Rectangle<int>(0,0,48,48);
-    private int _textureId;
-    private int _pixelsPerSecond = 128;
-
-    public PlayerObject(GameRenderer renderer, int x, int y, int worldWidth, int worldHeight) : base()
+    public PlayerObject(SpriteSheet spriteSheet, int x, int y) : base(spriteSheet, (x, y))
     {
-        _textureId = renderer.LoadTexture(Path.Combine("Assets", "player.png"), out var textureData);
-        X = x;
-        Y = y;
-        WorldWidth = worldWidth;
-        WorldHeight = worldHeight;
-        UpdateScreenTarget();
+        SpriteSheet.ActivateAnimation("IdleDown");
     }
 
-    private void UpdateScreenTarget(){
-        var targetX = X - 24;
-        var targetY = Y - 48 + 6; //Y - 42;
-
-        _target = new Rectangle<int>(targetX, targetY, 48, 48);
-    }
-
-    public void UpdatePlayerPosition(double up, double down, double left, double right, int time)
+    public void UpdatePlayerPosition(double up, double down, double left, double right, int width, int height,
+        double time)
     {
-        var pixelsToMove = (time / 1000.0) * _pixelsPerSecond;
+        var pixelsToMove = time * _pixelsPerSecond;
 
-        X += (int)(right * pixelsToMove);
-        X -= (int)(left * pixelsToMove);
-        Y -= (int)(up * pixelsToMove);
-        Y += (int)(down * pixelsToMove);
+        var x = Position.X + (int)(right * pixelsToMove);
+        x -= (int)(left * pixelsToMove);
 
-        if (X < 10) { X = 10; }
-        if (Y < 24) { Y = 24; }
-        if (X > WorldWidth - 10) { X = WorldWidth - 10;}
-        if (Y > WorldHeight - 6) { Y = WorldHeight - 6;}
+        var y = Position.Y - (int)(up * pixelsToMove);
+        y += (int)(down * pixelsToMove);
 
-        UpdateScreenTarget();
-    }
+        if (x < 10)
+        {
+            x = 10;
+        }
 
-    public void Render(GameRenderer renderer){
-        renderer.RenderTexture(_textureId, _source, _target);
+        if (y < 24)
+        {
+            y = 24;
+        }
+
+        if (x > width - 10)
+        {
+            x = width - 10;
+        }
+
+        if (y > height - 6)
+        {
+            y = height - 6;
+        }
+
+        Position = (x, y);
     }
 }

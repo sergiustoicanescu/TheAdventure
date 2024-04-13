@@ -13,12 +13,17 @@ namespace TheAdventure
         private Level? _currentLevel;
         private PlayerObject _player;
         private GameRenderer _renderer;
+        private Input _input;
 
         private DateTimeOffset _lastUpdate = DateTimeOffset.Now;
+        private DateTimeOffset _lastPlayerUpdate = DateTimeOffset.Now;
 
-        public Engine(GameRenderer renderer)
+        public Engine(GameRenderer renderer, Input input)
         {
             _renderer = renderer;
+            _input = input;
+
+            _input.OnMouseClick += (_, coords) => AddBomb(coords.x, coords.y);
         }
 
         public void InitializeWorld()
@@ -48,8 +53,15 @@ namespace TheAdventure
             }
 
             _currentLevel = level;
-            _player = new PlayerObject(_renderer, 24, 24, _currentLevel.TileWidth * _currentLevel.Width,
-                _currentLevel.TileHeight * _currentLevel.Height);
+            SpriteSheet spriteSheet = new(_renderer, Path.Combine("Assets", "player.png"), 10, 6, 48, 48, (24, 42));
+            spriteSheet.Animations["IdleDown"] = new SpriteSheet.Animation()
+            {
+                StartFrame = (0, 0),
+                EndFrame = (0, 5),
+                DurationMs = 1000,
+                Loop = true
+            };
+            _player = new PlayerObject(spriteSheet, 100, 100);
 
             _renderer.SetWorldBounds(new Rectangle<int>(0, 0, _currentLevel.Width * _currentLevel.TileWidth,
                 _currentLevel.Height * _currentLevel.TileHeight));
@@ -57,20 +69,39 @@ namespace TheAdventure
 
         public void ProcessFrame()
         {
+            var currentTime = DateTimeOffset.Now;
+            var secsSinceLastFrame = (currentTime - _lastUpdate).TotalSeconds;
+            _lastUpdate = currentTime;
+
+            bool up = _input.IsUpPressed();
+            bool down = _input.IsDownPressed();
+            bool left = _input.IsLeftPressed();
+            bool right = _input.IsRightPressed();
+
+            _player.UpdatePlayerPosition(up ? 1.0 : 0.0, down ? 1.0 : 0.0, left ? 1.0 : 0.0, right ? 1.0 : 0.0,
+                _currentLevel.Width * _currentLevel.TileWidth, _currentLevel.Height * _currentLevel.TileHeight,
+                secsSinceLastFrame);
+
+            var itemsToRemove = new List<int>();
+            itemsToRemove.AddRange(GetAllTemporaryGameObjects().Where(gameObject => gameObject.IsExpired)
+                .Select(gameObject => gameObject.Id).ToList());
+
+            foreach (var gameObject in itemsToRemove)
+            {
+                _gameObjects.Remove(gameObject);
+            }
         }
 
         public void RenderFrame()
         {
-            var currentTime = DateTimeOffset.Now;
-            var secsSinceLastFrame = (currentTime - _lastUpdate).TotalMilliseconds / 1000.0;
-            _lastUpdate = currentTime;
-
             _renderer.SetDrawColor(0, 0, 0, 255);
             _renderer.ClearScreen();
+            
+            _renderer.CameraLookAt(_player.Position.X, _player.Position.Y);
 
             RenderTerrain();
-            RenderAllObjects(secsSinceLastFrame);
-            
+            RenderAllObjects();
+
             _renderer.PresentFrame();
         }
 
@@ -120,37 +151,35 @@ namespace TheAdventure
         {
             foreach (var gameObject in _gameObjects.Values)
             {
-                if (gameObject is RenderableGameObject)
+                if (gameObject is RenderableGameObject renderableGameObject)
                 {
-                    yield return (RenderableGameObject)gameObject;
+                    yield return renderableGameObject;
                 }
             }
         }
 
-        private void RenderAllObjects(double timeSinceLastFrame)
+        private IEnumerable<TemporaryGameObject> GetAllTemporaryGameObjects()
         {
-            List<int> itemsToRemove = new List<int>();
+            foreach (var gameObject in _gameObjects.Values)
+            {
+                if (gameObject is TemporaryGameObject temporaryGameObject)
+                {
+                    yield return temporaryGameObject;
+                }
+            }
+        }
+
+        private void RenderAllObjects()
+        {
             foreach (var gameObject in GetAllRenderableObjects())
             {
-                // if (gameObject.Update(timeSinceLastFrame))
-                // {
-                    gameObject.Render(_renderer);
-                // }
-                // else
-                // {
-                //     itemsToRemove.Add(gameObject.Id);
-                // }
-            }
-
-            foreach (var item in itemsToRemove)
-            {
-                _gameObjects.Remove(item);
+                gameObject.Render(_renderer);
             }
 
             _player.Render(_renderer);
         }
 
-        public void AddBomb(int x, int y)
+        private void AddBomb(int x, int y)
         {
             var translated = _renderer.TranslateFromScreenToWorldCoordinates(x, y);
             SpriteSheet spriteSheet = new(_renderer, "BombExploding.png", 1, 13, 32, 64, (16, 48));
@@ -162,7 +191,7 @@ namespace TheAdventure
                 Loop = false
             };
             spriteSheet.ActivateAnimation("Explode");
-            RenderableGameObject bomb = new(spriteSheet, (translated.X, translated.Y));
+            TemporaryGameObject bomb = new(spriteSheet, 2.1, (translated.X, translated.Y));
             _gameObjects.Add(bomb.Id, bomb);
         }
     }
