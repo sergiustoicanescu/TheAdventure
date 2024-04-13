@@ -1,6 +1,8 @@
 using Silk.NET.Maths;
 using TheAdventure;
 
+namespace TheAdventure.Models;
+
 public class PlayerObject : GameObject
 {
     /// <summary>
@@ -24,9 +26,9 @@ public class PlayerObject : GameObject
     private int _textureId;
     private int _pixelsPerSecond = 128;
 
-    public PlayerObject(int id, int x, int y, int worldWidth, int worldHeight) : base(id)
+    public PlayerObject(GameRenderer renderer, int x, int y, int worldWidth, int worldHeight) : base()
     {
-        _textureId = GameRenderer.LoadTexture(Path.Combine("Assets", "player.png"), out var textureData);
+        _textureId = renderer.LoadTexture(Path.Combine("Assets", "player.png"), out var textureData);
         X = x;
         Y = y;
         WorldWidth = worldWidth;
