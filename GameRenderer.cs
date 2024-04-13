@@ -39,13 +39,18 @@ namespace TheAdventure
             _renderer = (Renderer*)gameWindow.CreateRenderer();
             _textures = new Dictionary<int, IntPtr>();
             _textureData = new Dictionary<int, TextureData>();
-            _camera = new GameCamera();
-            _camera.Width = 800;
-            _camera.Height = 600;
+            var gameWorld = new Rectangle<int>(); //gameLogic.GetWorldBoundingBox();
+            _camera = new GameCamera(800, 600, gameWorld);
 
             // TODO: Check if _singleton is not null, if it is, clear resources.
 
             _singleton = this;
+        }
+
+        public void UpdateCamera(){
+            var gameWorld = _gameLogic.GetWorldBoundingBox();
+            Console.WriteLine($" {gameWorld.Size.X}, {gameWorld.Size.Y}");
+            _camera = new GameCamera(800, 600, gameWorld);
         }
 
         public static int LoadTexture(string fileName, out TextureData textureData)
@@ -105,11 +110,17 @@ namespace TheAdventure
             }
         }
 
+        public Vector2D<int> TranslateFromScreenToWorldCoordinates(int x, int y){
+            return _camera.FromScreenToWorld(x, y);
+        }
+
         public void Render()
         {
             var playerPos = _gameLogic.GetPlayerCoordinates();
 
             // TODO: implement the soft margin;
+
+            
 
             _camera.X = playerPos.x;
             _camera.Y = playerPos.y;
