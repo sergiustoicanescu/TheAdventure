@@ -7,9 +7,13 @@ public class PlayerObject : RenderableGameObject
 {
     private int _pixelsPerSecond = 192;
 
+    private string _currentAnimation = "IdleDown";
+
+
     public PlayerObject(SpriteSheet spriteSheet, int x, int y) : base(spriteSheet, (x, y))
     {
-        SpriteSheet.ActivateAnimation("IdleDown");
+        SpriteSheet.ActivateAnimation(_currentAnimation);
+       
     }
 
     public void UpdatePlayerPosition(double up, double down, double left, double right, int width, int height,
@@ -41,6 +45,15 @@ public class PlayerObject : RenderableGameObject
         if (y > height - 6)
         {
             y = height - 6;
+        }
+
+        if(x > Position.X && _currentAnimation != "MoveRight"){
+            _currentAnimation = "MoveRight";
+            SpriteSheet.ActivateAnimation(_currentAnimation);
+        }
+        if (x < Position.X && _currentAnimation != "MoveLeft"){
+            _currentAnimation = "MoveLeft";
+            SpriteSheet.ActivateAnimation(_currentAnimation);
         }
 
         Position = (x, y);
