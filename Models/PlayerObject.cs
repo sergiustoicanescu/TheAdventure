@@ -19,6 +19,15 @@ public class PlayerObject : RenderableGameObject
     public void UpdatePlayerPosition(double up, double down, double left, double right, int width, int height,
         double time)
     {
+
+        if (up <= double.Epsilon &&
+            down <= double.Epsilon &&
+            left <= double.Epsilon &&
+            right <= double.Epsilon &&
+            _currentAnimation == "IdleDown"){
+            return;
+        }
+
         var pixelsToMove = time * _pixelsPerSecond;
 
         var x = Position.X + (int)(right * pixelsToMove);
@@ -47,15 +56,30 @@ public class PlayerObject : RenderableGameObject
             y = height - 6;
         }
 
-        if(x > Position.X && _currentAnimation != "MoveRight"){
+        if (y < Position.Y && _currentAnimation != "MoveUp"){
+            _currentAnimation = "MoveUp";
+            //Console.WriteLine($"Attempt to switch to {_currentAnimation}");
+        }
+        if (y > Position.Y && _currentAnimation != "MoveDown"){
+            _currentAnimation = "MoveDown";
+            //Console.WriteLine($"Attempt to switch to {_currentAnimation}");
+        }
+        if (x > Position.X && _currentAnimation != "MoveRight"){
             _currentAnimation = "MoveRight";
-            SpriteSheet.ActivateAnimation(_currentAnimation);
+            //Console.WriteLine($"Attempt to switch to {_currentAnimation}");
         }
         if (x < Position.X && _currentAnimation != "MoveLeft"){
             _currentAnimation = "MoveLeft";
-            SpriteSheet.ActivateAnimation(_currentAnimation);
+            //Console.WriteLine($"Attempt to switch to {_currentAnimation}");
+        }
+        if (x == Position.X && _currentAnimation != "IdleDown" &&
+            y == Position.Y && _currentAnimation != "IdleDown"){
+            _currentAnimation = "IdleDown";
+            //Console.WriteLine($"Attempt to switch to {_currentAnimation}");
         }
 
+        //Console.WriteLine($"Will to switch to {_currentAnimation}");
+        SpriteSheet.ActivateAnimation(_currentAnimation);
         Position = (x, y);
     }
 }
