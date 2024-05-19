@@ -20,19 +20,30 @@ namespace TheAdventure
 
         private DateTimeOffset _lastUpdate = DateTimeOffset.Now;
         private DateTimeOffset _lastPlayerUpdate = DateTimeOffset.Now;
+
+        private int _score;
         public Engine(GameRenderer renderer, Input input)
         {
             _renderer = renderer;
             _input = input;
             _scriptEngine = new ScriptEngine();
             _input.OnMouseClick += (_, coords) => AddBomb(coords.x, coords.y);
+
+            _score = 0;
         }
 
-        public void WriteToConsole(string message){
+        private void IncreaseScore()
+        {
+            _score++;
+        }
+
+        public void WriteToConsole(string message)
+        {
             Console.WriteLine(message);
         }
 
-        public (int x, int y) GetPlayerPosition(){
+        public (int x, int y) GetPlayerPosition()
+        {
             var pos = _player.Position;
             return (pos.X, pos.Y);
         }
@@ -77,7 +88,8 @@ namespace TheAdventure
             };
             */
             var spriteSheet = SpriteSheet.LoadSpriteSheet("player.json", "Assets", _renderer);
-            if(spriteSheet != null){
+            if (spriteSheet != null)
+            {
                 _player = new PlayerObject(spriteSheet, 100, 100);
             }
             _renderer.SetWorldBounds(new Rectangle<int>(0, 0, _currentLevel.Width * _currentLevel.TileWidth,
@@ -99,20 +111,22 @@ namespace TheAdventure
 
             _scriptEngine.ExecuteAll(this);
 
-            if(isAttacking)
+            if (isAttacking)
             {
-                var dir = up ? 1: 0;
-                dir += down? 1 : 0;
-                dir += left? 1: 0;
+                var dir = up ? 1 : 0;
+                dir += down ? 1 : 0;
+                dir += left ? 1 : 0;
                 dir += right ? 1 : 0;
-                if(dir <= 1){
+                if (dir <= 1)
+                {
                     _player.Attack(up, down, left, right);
                 }
-                else{
+                else
+                {
                     isAttacking = false;
                 }
             }
-            if(!isAttacking)
+            if (!isAttacking)
             {
                 _player.UpdatePlayerPosition(up ? 1.0 : 0.0, down ? 1.0 : 0.0, left ? 1.0 : 0.0, right ? 1.0 : 0.0,
                     _currentLevel.Width * _currentLevel.TileWidth, _currentLevel.Height * _currentLevel.TileHeight,
@@ -127,32 +141,60 @@ namespace TheAdventure
                 AddBomb(_player.Position.X, _player.Position.Y, false);
             }
 
+            bool bombDodged = false;
+
             foreach (var gameObjectId in itemsToRemove)
             {
                 var gameObject = _gameObjects[gameObjectId];
-                if(gameObject is TemporaryGameObject){
+                if (gameObject is TemporaryGameObject)
+                {
                     var tempObject = (TemporaryGameObject)gameObject;
                     var deltaX = Math.Abs(_player.Position.X - tempObject.Position.X);
                     var deltaY = Math.Abs(_player.Position.Y - tempObject.Position.Y);
-                    if(deltaX < 32 && deltaY < 32){
-                        _player.GameOver();
+                    if (deltaX < 32 && deltaY < 32)
+                    {
+                        GameOver();
+                    }
+                    else
+                    {
+                        bombDodged = true;
                     }
                 }
                 _gameObjects.Remove(gameObjectId);
             }
+
+            if (bombDodged)
+            {
+                IncreaseScore();
+                RenderScore();
+            }
+
         }
 
         public void RenderFrame()
         {
             _renderer.SetDrawColor(0, 0, 0, 255);
             _renderer.ClearScreen();
-            
+
             _renderer.CameraLookAt(_player.Position.X, _player.Position.Y);
 
             RenderTerrain();
             RenderAllObjects();
 
             _renderer.PresentFrame();
+        }
+
+        private void RenderScore()
+        {
+            var scoreText = $"Score: {_score}";
+            Console.WriteLine(scoreText);
+        }
+
+        private async void GameOver()
+        {
+            _player.GameOver();
+            await Task.Delay(1000);
+            Environment.Exit(0);
         }
 
         private Tile? GetTile(int id)
@@ -233,9 +275,10 @@ namespace TheAdventure
         {
 
             var translated = translateCoordinates ? _renderer.TranslateFromScreenToWorldCoordinates(x, y) : new Vector2D<int>(x, y);
-            
+
             var spriteSheet = SpriteSheet.LoadSpriteSheet("bomb.json", "Assets", _renderer);
-            if(spriteSheet != null){
+            if (spriteSheet != null)
+            {
                 spriteSheet.ActivateAnimation("Explode");
                 TemporaryGameObject bomb = new(spriteSheet, 2.1, (translated.X, translated.Y));
                 _gameObjects.Add(bomb.Id, bomb);
