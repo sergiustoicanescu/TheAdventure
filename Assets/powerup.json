@@ -1,0 +1,37 @@
+{
+    "rowCount": 1,
+    "columnCount": 2,
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "frameCenter": {
+        "offsetX": 16,
+        "offsetY": 16
+    },
+    "fileName": "PowerUp.png",
+    "animations": {
+        "SpeedBoost": {
+            "startFrame": {
+                "row": 0,
+                "col": 0
+            },
+            "endFrame": {
+                "row": 0,
+                "col": 1
+            },
+            "durationMs": 1000,
+            "loop": true
+        },
+        "Invincibility": {
+            "startFrame": {
+                "row": 0,
+                "col": 2
+            },
+            "endFrame": {
+                "row": 0,
+                "col": 3
+            },
+            "durationMs": 1000,
+            "loop": true
+        }
+    }
+}

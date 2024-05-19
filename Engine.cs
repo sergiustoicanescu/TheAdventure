@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Silk.NET.Maths;
 using Silk.NET.SDL;
 using TheAdventure.Models;
@@ -22,6 +26,8 @@ namespace TheAdventure
         private DateTimeOffset _lastPlayerUpdate = DateTimeOffset.Now;
 
         private int _score;
+        private Random _random;
+
         public Engine(GameRenderer renderer, Input input)
         {
             _renderer = renderer;
@@ -30,6 +36,7 @@ namespace TheAdventure
             _input.OnMouseClick += (_, coords) => AddBomb(coords.x, coords.y);
 
             _score = 0;
+            _random = new Random();
         }
 
         private void IncreaseScore()
@@ -151,7 +158,7 @@ namespace TheAdventure
                     var tempObject = (TemporaryGameObject)gameObject;
                     var deltaX = Math.Abs(_player.Position.X - tempObject.Position.X);
                     var deltaY = Math.Abs(_player.Position.Y - tempObject.Position.Y);
-                    if (deltaX < 32 && deltaY < 32)
+                    if (deltaX < 32 && deltaY < 32 && !_player.IsInvincible)
                     {
                         GameOver();
                     }
@@ -167,8 +174,19 @@ namespace TheAdventure
             {
                 IncreaseScore();
                 RenderScore();
+                SpawnPowerUp();
             }
 
+            foreach (var powerUp in GetAllPowerUps())
+            {
+                var deltaX = Math.Abs(_player.Position.X - powerUp.Position.X);
+                var deltaY = Math.Abs(_player.Position.Y - powerUp.Position.Y);
+                if (deltaX < 32 && deltaY < 32)
+                {
+                    CollectPowerUp(powerUp);
+                    _gameObjects.Remove(powerUp.Id);
+                }
+            }
         }
 
         public void RenderFrame()
@@ -261,6 +279,17 @@ namespace TheAdventure
             }
         }
 
+        private IEnumerable<PowerUp> GetAllPowerUps()
+        {
+            foreach (var gameObject in _gameObjects.Values)
+            {
+                if (gameObject is PowerUp powerUp)
+                {
+                    yield return powerUp;
+                }
+            }
+        }
+
         private void RenderAllObjects()
         {
             foreach (var gameObject in GetAllRenderableObjects())
@@ -282,6 +311,39 @@ namespace TheAdventure
                 spriteSheet.ActivateAnimation("Explode");
                 TemporaryGameObject bomb = new(spriteSheet, 2.1, (translated.X, translated.Y));
                 _gameObjects.Add(bomb.Id, bomb);
+            }
+        }
+
+        private void SpawnPowerUp()
+        {
+            if (_random.NextDouble() < 0.5)
+            {
+                var powerUpType = (PowerUpType)_random.Next(0, 2);
+                var x = _random.Next(0, _currentLevel.Width * _currentLevel.TileWidth);
+                var y = _random.Next(0, _currentLevel.Height * _currentLevel.TileHeight);
+                var spriteSheet = SpriteSheet.LoadSpriteSheet("powerup.json", "Assets", _renderer);
+
+                if (spriteSheet != null)
+                {
+                    PowerUp powerUp = new(spriteSheet, 10.0, (x, y), powerUpType);
+                    spriteSheet.ActivateAnimation(powerUpType.ToString());
+                    _gameObjects.Add(powerUp.Id, powerUp);
+                }
+            }
+        }
+
+        private void CollectPowerUp(PowerUp powerUp)
+        {
+            switch (powerUp.Type)
+            {
+                case PowerUpType.SpeedBoost:
+                    _player.Speed += 1.0;
+                    Task.Delay(5000).ContinueWith(t => _player.Speed -= 1.0);
+                    break;
+                case PowerUpType.Invincibility:
+                    _player.IsInvincible = true;
+                    Task.Delay(5000).ContinueWith(t => _player.IsInvincible = false);
+                    break;
             }
         }
     }
